@@ -13,12 +13,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <strings.h>
 
 #include "host/audio_fx_api_v2.h"
 #include "mp_engine.h"
 #include "mp_metadata.h"
-#include "mp_patch_data.h"
 
 #define MP_POOL 8
 
@@ -30,21 +28,17 @@ typedef struct {
 static mp_slot g_pool[MP_POOL];
 static int g_host_rate = 44100;
 
-/* Schwung's standard knob grid, one page of eight. Served as ui_hierarchy,
- * so the shadow UI opens it in a track slot AND in Master FX. */
-#define MP_KEYS "\"mix\",\"g1_srate\",\"g2_cutoff\",\"g3_formant\",\"g4_low\",\"g5_type\",\"g6_bypass\",\"time\""
+/* Schwung's standard knob grid, two pages of eight: the sound, then the
+ * delays and the stereo image. Served as ui_hierarchy, so the shadow UI opens
+ * it in a track slot AND in Master FX. */
+#define MP_KEYS "\"mix\",\"crush\",\"cutoff\",\"reso\",\"formant\",\"drive\",\"bass\",\"delay\"," \
+    "\"pre_time\",\"pre_fdbk\",\"pre_mix\",\"post_time\",\"post_fdbk\",\"width\",\"fmt_amt\",\"level\""
 static const char k_hierarchy[] =
     "{\"modes\":null,\"levels\":{"
       "\"root\":{\"label\":\"MONSTER PHASE\","
         "\"knobs\":[" MP_KEYS "],"
         "\"params\":[" MP_KEYS "]}"
     "}}";
-
-static const char *const *enum_names(int idx) {
-    if (idx == MP_P_GRF5) return MP_TYPE_NAMES;
-    if (idx == MP_P_GRF6) return MP_ONOFF_NAMES;
-    return NULL;
-}
 
 static int param_index(const char *key) {
     for (int i = 0; i < MP_P_COUNT; ++i)
@@ -57,17 +51,8 @@ static const char *skip_space(const char *p) {
     return p;
 }
 
-/* A number, or (enums) an option name in any case. */
-static int parse_value(int idx, const char *text, float *out) {
-    const char *const *names = enum_names(idx);
+static int parse_value(const char *text, float *out) {
     const char *p = skip_space(text);
-    for (int i = 0; names && i < 2; ++i) {
-        size_t n = strlen(names[i]);
-        if (!strncasecmp(p, names[i], n) && !*skip_space(p + n)) {
-            *out = (float)i;
-            return 1;
-        }
-    }
     char *end;
     float v = strtof(p, &end);
     if (end == p || *skip_space(end) || !isfinite(v)) return 0;
@@ -164,7 +149,7 @@ static void set_param(void *instance, const char *key, const char *val) {
     }
     int idx = param_index(key);
     float v;
-    if (idx < 0 || !parse_value(idx, val, &v)) return;
+    if (idx < 0 || !parse_value(val, &v)) return;
     mp_engine_set(e, idx, v);
 }
 
@@ -175,8 +160,7 @@ static int get_param(void *instance, const char *key, char *buf, int size) {
     int n = -1;
     int idx = param_index(key);
     if (idx >= 0) {
-        const char *const *names = enum_names(idx);
-        n = names ? snprintf(buf, size, "%s", names[(int)e->p[idx]]) : snprintf(buf, size, "%.4f", e->p[idx]);
+        n = snprintf(buf, size, "%.4f", e->p[idx]);
     } else if (!strcmp(key, "name")) {
         return copy_text(buf, size, "MONSTER PHASE");
     } else if (!strcmp(key, "chain_params")) {
@@ -184,17 +168,12 @@ static int get_param(void *instance, const char *key, char *buf, int size) {
     } else if (!strcmp(key, "ui_hierarchy")) {
         return copy_text(buf, size, k_hierarchy);
     } else if (!strcmp(key, "state")) {
-        n = snprintf(buf, size,
-            "{\"version\":1,\"mix\":%.6g,\"g1_srate\":%.6g,\"g2_cutoff\":%.6g,\"g3_formant\":%.6g,"
-            "\"g4_low\":%.6g,\"g5_type\":%d,\"g6_bypass\":%d,\"time\":%.6g}",
-            e->p[MP_P_MIX], e->p[MP_P_GRF1], e->p[MP_P_GRF2], e->p[MP_P_GRF3], e->p[MP_P_GRF4],
-            (int)e->p[MP_P_GRF5], (int)e->p[MP_P_GRF6], e->p[MP_P_TIME]);
+        n = snprintf(buf, size, "{\"version\":2");
+        for (int i = 0; i < MP_P_COUNT && n > 0 && n < size; ++i)
+            n += snprintf(buf + n, size - n, ",\"%s\":%.6g", MP_PARAMS[i].key, e->p[i]);
+        if (n > 0 && n < size) n += snprintf(buf + n, size - n, "}");
     } else if (!strcmp(key, "version")) {
         return copy_text(buf, size, kVersion);
-    } else if (!strcmp(key, "patch_sha256")) {
-        return copy_text(buf, size, MP_PATCH_SHA256);
-    } else if (!strcmp(key, "routing")) {
-        return copy_text(buf, size, MP_ROUTING_ID);
     } else if (!strcmp(key, "nan_resets")) {
         n = snprintf(buf, size, "%d", e->nan_resets);
     }

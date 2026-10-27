@@ -36,9 +36,10 @@ def read(key):
     return None if n < 0 else buf.value.decode()
 
 
-keys = ["mix", "g1_srate", "g2_cutoff", "g3_formant", "g4_low", "g5_type", "g6_bypass", "time"]
+keys = ["mix", "crush", "cutoff", "reso", "formant", "drive", "bass", "delay",
+        "pre_time", "pre_fdbk", "pre_mix", "post_time", "post_fdbk", "width", "fmt_amt", "level"]
 out = {"ui_hierarchy": read("ui_hierarchy"), "chain_params": read("chain_params"),
        "values": {k: read(k) for k in keys}}
-assert json.loads(out["ui_hierarchy"])["levels"]["root"]["knobs"] == keys, "ui_hierarchy must list the eight knobs"
+assert json.loads(out["ui_hierarchy"])["levels"]["root"]["knobs"] == keys, "ui_hierarchy must list the sixteen knobs"
 pathlib.Path(sys.argv[2]).write_text(json.dumps(out, indent=1))
 print("contract dumped:", sys.argv[2])

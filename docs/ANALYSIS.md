@@ -1,5 +1,8 @@
 # BITRAZER_MONSTER_PHASE 解析記録
 
+> **0.2.0 以降、モジュールは元パッチの再現をやめ、独自の設計になった**（README 参照）。
+> この文書は 0.1.0 で再現を試みたときの解析記録として残している。DSP 節（§6、§7）の数値は 0.1.0 のもの。
+
 この文書は、`patch/BITRAZER_MONSTER_PHASE.bin`（AIRA Modular Customizer で保存されたパッチ）と
 `reference/MONSTER_PHASE_reference.png`（Customizer のスクリーンショット）から何が分かり、何が分からないかを
 区別して記録する。実装の数値はすべてここに出典区分を付けてある。

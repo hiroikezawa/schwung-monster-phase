@@ -3,7 +3,7 @@
  *
  * Copyright (c) 2026 Hiro Ikezawa. MIT License (see LICENSE).
  *
- * Written from the mathematics: TPT state-variable filters, RBJ biquads, a
+ * Written from the mathematics: TPT state-variable filters, an RBJ shelf, a
  * 4-point Hermite fractional delay read, a windowed-sinc polyphase 4x
  * resampler, a rational tanh. No code copied from anywhere.
  */
@@ -11,8 +11,6 @@
 
 #include <math.h>
 #include <string.h>
-
-#include "mp_convert.h"
 
 #define MP_PI 3.14159265358979323846f
 
@@ -50,38 +48,24 @@ void mp_svf_tick(mp_svf *f, float x, float *lp, float *bp, float *hp) {
     if (hp) *hp = x - f->k * v1 - v2;
 }
 
-static void svf_flush(mp_svf *f) {
+void mp_svf_flush(mp_svf *f) {
     f->ic1 = flush(f->ic1);
     f->ic2 = flush(f->ic2);
 }
 
 /* ---------------- biquad ---------------- */
 
-static void biquad_norm(mp_biquad *b, float b0, float b1, float b2, float a0, float a1, float a2) {
-    b->b0 = b0 / a0; b->b1 = b1 / a0; b->b2 = b2 / a0;
-    b->a1 = a1 / a0; b->a2 = a2 / a0;
-}
-
 void mp_biquad_lowshelf(mp_biquad *b, float hz, float db, float fs) {
     float A = powf(10.0f, db / 40.0f), w = 2.0f * MP_PI * hz / fs;
     float c = cosf(w), s = sinf(w), al = s / 2.0f * sqrtf(2.0f), sa = 2.0f * sqrtf(A) * al;
-    biquad_norm(b, A * ((A + 1) - (A - 1) * c + sa), 2 * A * ((A - 1) - (A + 1) * c),
-                A * ((A + 1) - (A - 1) * c - sa), (A + 1) + (A - 1) * c + sa,
-                -2 * ((A - 1) + (A + 1) * c), (A + 1) + (A - 1) * c - sa);
-}
-
-void mp_biquad_highshelf(mp_biquad *b, float hz, float db, float fs) {
-    float A = powf(10.0f, db / 40.0f), w = 2.0f * MP_PI * hz / fs;
-    float c = cosf(w), s = sinf(w), al = s / 2.0f * sqrtf(2.0f), sa = 2.0f * sqrtf(A) * al;
-    biquad_norm(b, A * ((A + 1) + (A - 1) * c + sa), -2 * A * ((A - 1) + (A + 1) * c),
-                A * ((A + 1) + (A - 1) * c - sa), (A + 1) - (A - 1) * c + sa,
-                2 * ((A - 1) - (A + 1) * c), (A + 1) - (A - 1) * c - sa);
-}
-
-void mp_biquad_peak(mp_biquad *b, float hz, float q, float db, float fs) {
-    float A = powf(10.0f, db / 40.0f), w = 2.0f * MP_PI * hz / fs;
-    float c = cosf(w), al = sinf(w) / (2.0f * q);
-    biquad_norm(b, 1 + al * A, -2 * c, 1 - al * A, 1 + al / A, -2 * c, 1 - al / A);
+    float a0 = (A + 1) + (A - 1) * c + sa;
+    b->b0 = A * ((A + 1) - (A - 1) * c + sa) / a0;
+    b->b1 = 2 * A * ((A - 1) - (A + 1) * c) / a0;
+    b->b2 = A * ((A + 1) - (A - 1) * c - sa) / a0;
+    b->a1 = -2 * ((A - 1) + (A + 1) * c) / a0;
+    b->a2 = ((A + 1) + (A - 1) * c - sa) / a0;
+    b->z1 = flush(b->z1);
+    b->z2 = flush(b->z2);
 }
 
 float mp_biquad_tick(mp_biquad *b, float x) {
@@ -91,48 +75,74 @@ float mp_biquad_tick(mp_biquad *b, float x) {
     return y;
 }
 
-/* ---------------- SHORT DELAY ---------------- */
+/* ---------------- delays ---------------- */
+
+static float hermite(const float *buf, int mask, float r) {
+    float fl = floorf(r);
+    float f = r - fl;
+    int i = (int)fl;
+    float xm1 = buf[(i - 1) & mask], x0 = buf[i & mask], x1 = buf[(i + 1) & mask], x2 = buf[(i + 2) & mask];
+    float c1 = 0.5f * (x1 - xm1);
+    float c2 = xm1 - 2.5f * x0 + 2.0f * x1 - 0.5f * x2;
+    float c3 = 0.5f * (x2 - xm1) + 1.5f * (x0 - x1);
+    return ((c3 * f + c2) * f + c1) * f + x0;
+}
+
+static float ms_to_samples(float ms, float fs, float max) {
+    float s = ms * 0.001f * fs;
+    return s < MP_DLY_MIN ? MP_DLY_MIN : s > max ? max : s;
+}
 
 void mp_delay_init(mp_delay *d, float fs) {
-    memset(d->buf, 0, sizeof(d->buf));
-    d->w = 0;
+    memset(d, 0, sizeof(*d));
     d->d = d->d_target = MP_DLY_MIN;
     d->glide = 1.0f - expf(-1.0f / (0.02f * fs));   /* 20 ms time glide */
-    d->fb = d->wet = 0.0f;
 }
 
 void mp_delay_set(mp_delay *d, float time_ms, float fb, float wet, float fs) {
-    float s = time_ms * 0.001f * fs;
-    if (s < MP_DLY_MIN) s = MP_DLY_MIN;
-    if (s > MP_DLY_SIZE - 4) s = MP_DLY_SIZE - 4;
-    d->d_target = s;
+    d->d_target = ms_to_samples(time_ms, fs, MP_DLY_SIZE - 4);
     d->fb = fb;
     d->wet = wet;
 }
 
 float mp_delay_tick(mp_delay *d, float x) {
     d->d += d->glide * (d->d_target - d->d);
-    float r = (float)d->w - d->d;
-    float fl = floorf(r);
-    float f = r - fl;
-    int i = (int)fl;
-    const int m = MP_DLY_SIZE - 1;
-    float xm1 = d->buf[(i - 1) & m], x0 = d->buf[i & m], x1 = d->buf[(i + 1) & m], x2 = d->buf[(i + 2) & m];
-    float c1 = 0.5f * (x1 - xm1);
-    float c2 = xm1 - 2.5f * x0 + 2.0f * x1 - 0.5f * x2;
-    float c3 = 0.5f * (x2 - xm1) + 1.5f * (x0 - x1);
-    float y = ((c3 * f + c2) * f + c1) * f + x0;
+    float y = hermite(d->buf, MP_DLY_SIZE - 1, (float)d->w - d->d);
     /* the loop saturates softly above ~0.5 so FEEDBACK 100 % cannot run away */
     d->buf[d->w] = flush(x + d->fb * 2.0f * mp_soft(0.5f * y));
-    d->w = (d->w + 1) & m;
+    d->w = (d->w + 1) & (MP_DLY_SIZE - 1);
     return (1.0f - d->wet) * x + d->wet * y;
 }
 
-/* ---------------- FORMANT FILTER ---------------- */
+void mp_pingpong_init(mp_pingpong *p, float fs) {
+    memset(p, 0, sizeof(*p));
+    p->d[0] = p->d[1] = p->d_target[0] = p->d_target[1] = MP_DLY_MIN;
+    p->glide = 1.0f - expf(-1.0f / (0.05f * fs));   /* 50 ms time glide */
+}
 
-/* Vowels in the panel's order a, i, u, e, o: centre Hz, level dB, bandwidth Hz
- * of the first three formants (standard tenor formant tables). Roland's own
- * table is not published. */
+void mp_pingpong_set(mp_pingpong *p, float ms_l, float ms_r, float fb, float cross, float fs) {
+    p->d_target[0] = ms_to_samples(ms_l, fs, MP_PP_SIZE - 4);
+    p->d_target[1] = ms_to_samples(ms_r, fs, MP_PP_SIZE - 4);
+    p->fb = fb;
+    p->cross = cross;
+}
+
+void mp_pingpong_tick(mp_pingpong *p, const float in[2], float wet[2]) {
+    for (int c = 0; c < 2; ++c) {
+        p->d[c] += p->glide * (p->d_target[c] - p->d[c]);
+        wet[c] = hermite(p->buf[c], MP_PP_SIZE - 1, (float)p->w - p->d[c]);
+    }
+    for (int c = 0; c < 2; ++c) {
+        float back = (1.0f - p->cross) * wet[c] + p->cross * wet[1 - c];
+        p->buf[c][p->w] = flush(in[c] + p->fb * 2.0f * mp_soft(0.5f * back));
+    }
+    p->w = (p->w + 1) & (MP_PP_SIZE - 1);
+}
+
+/* ---------------- formant ---------------- */
+
+/* Vowels in the order a, i, u, e, o: centre Hz, level dB, bandwidth Hz of the
+ * first three formants (standard tenor formant tables). */
 static const float VOWEL_HZ[5][3] = {
     {650, 1080, 2650}, {290, 1870, 2800}, {350, 600, 2700}, {400, 1700, 2600}, {400, 800, 2600}};
 static const float VOWEL_DB[5][3] = {
@@ -158,34 +168,55 @@ void mp_formant_freqs(float vowel, float hz[3]) {
     vowel_lookup(vowel, hz, amp, bw);
 }
 
-void mp_formant_set(mp_formant *f, float vowel1, float vowel2, float balance, float fs) {
-    const float v[2] = {vowel1, vowel2};
-    for (int j = 0; j < 2; ++j) {
-        float hz[3], bw[3];
-        vowel_lookup(v[j], hz, f->amp[j], bw);
-        for (int k = 0; k < 3; ++k) {
-            mp_svf_set(&f->band[j][k], hz[k], hz[k] / bw[k], fs);
-            svf_flush(&f->band[j][k]);
-        }
+void mp_vowel_set(mp_vowel_bank *v, float vowel, float fs) {
+    float hz[3], bw[3];
+    vowel_lookup(vowel, hz, v->amp, bw);
+    for (int k = 0; k < 3; ++k) {
+        mp_svf_set(&v->band[k], hz[k], hz[k] / bw[k], fs);
+        mp_svf_flush(&v->band[k]);
     }
-    f->balance = balance < 0 ? 0 : balance > 1 ? 1 : balance;
 }
 
-float mp_formant_tick(mp_formant *f, float x) {
-    float out[2];
-    for (int j = 0; j < 2; ++j) {
-        float s = 0.0f;
-        for (int k = 0; k < 3; ++k) {
-            float bp;
-            mp_svf_tick(&f->band[j][k], x, NULL, &bp, NULL);
-            s += f->amp[j][k] * bp;
-        }
-        out[j] = s;
+float mp_vowel_tick(mp_vowel_bank *v, float x) {
+    float s = 0.0f;
+    for (int k = 0; k < 3; ++k) {
+        float bp;
+        mp_svf_tick(&v->band[k], x, NULL, &bp, NULL);
+        s += v->amp[k] * bp;
     }
-    return (1.0f - f->balance) * out[0] + f->balance * out[1];
+    return s;
 }
 
-/* ---------------- TUBE CLIP ---------------- */
+/* ---------------- crusher ---------------- */
+
+void mp_crush_init(mp_crush *c) {
+    memset(c, 0, sizeof(*c));
+    c->acc[0] = c->acc[1] = 1.0f;   /* take the first sample at once */
+    c->inc = 1.0f;
+}
+
+void mp_crush_set(mp_crush *c, float hz, float offset, float fs) {
+    c->inc = hz / fs;
+    if (c->inc > 1.0f) c->inc = 1.0f;
+    /* moving the right clock against the left keeps both running */
+    float a = c->acc[1] + (offset - c->offset);
+    c->acc[1] = a - floorf(a);
+    c->offset = offset;
+}
+
+void mp_crush_tick(mp_crush *c, const float in[2], float out[2]) {
+    /* No anti-alias filter and no bit reduction: the fold-over is the sound. */
+    for (int k = 0; k < 2; ++k) {
+        c->acc[k] += c->inc;
+        if (c->acc[k] >= 1.0f) {
+            c->acc[k] -= floorf(c->acc[k]);
+            c->held[k] = in[k];
+        }
+        out[k] = c->held[k];
+    }
+}
+
+/* ---------------- tube ---------------- */
 
 /* One windowed-sinc low-pass serves both directions: cutoff at 0.9 of the
  * base-rate Nyquist, Blackman window, unity DC gain. */
@@ -220,9 +251,11 @@ void mp_tube_init(mp_tube *t, float fs) {
     t->os = MP_OS;
 }
 
-void mp_tube_set(mp_tube *t, float gain, float out_level) {
-    t->drive = powf(10.0f, mp_tube_drive_db(gain) / 20.0f);
-    t->out_gain = mp_tube_out_gain(out_level);
+/* The output is scaled down as the drive goes up (drive^-0.6), so DRIVE
+ * changes the saturation far more than the loudness. */
+void mp_tube_set(mp_tube *t, float drive_db) {
+    t->drive = powf(10.0f, drive_db / 20.0f);
+    t->out_gain = powf(t->drive, -0.6f) / (1.0f - MP_TUBE_BIAS * MP_TUBE_BIAS);
 }
 
 static float tube_curve(float u) { return mp_soft(u + MP_TUBE_BIAS) - mp_soft(MP_TUBE_BIAS); }
@@ -259,99 +292,5 @@ void mp_tube_tick(mp_tube *t, const float in[2], float out[2]) {
         t->dc_x[c] = v;
         t->dc_y[c] = flush(d);
         out[c] = d;
-    }
-}
-
-/* ---------------- 3 BAND EQ ---------------- */
-
-void mp_eq_init(mp_eq *e) {
-    memset(e, 0, sizeof(*e));
-    e->g_lo = e->g_mid = e->g_hi = 1e9f;   /* force the first set */
-}
-
-void mp_eq_set(mp_eq *e, float hi, float mid, float lo, float fs) {
-    float dl = mp_eq_gain_db(lo), dm = mp_eq_gain_db(mid), dh = mp_eq_gain_db(hi);
-    if (fabsf(dl - e->g_lo) > 1e-4f) { mp_biquad_lowshelf(&e->lo, MP_EQ_LOW_HZ, dl, fs); e->g_lo = dl; }
-    if (fabsf(dm - e->g_mid) > 1e-4f) { mp_biquad_peak(&e->mid, MP_EQ_MID_HZ, MP_EQ_MID_Q, dm, fs); e->g_mid = dm; }
-    if (fabsf(dh - e->g_hi) > 1e-4f) { mp_biquad_highshelf(&e->hi, MP_EQ_HI_HZ, dh, fs); e->g_hi = dh; }
-    mp_biquad *b[3] = {&e->lo, &e->mid, &e->hi};
-    for (int i = 0; i < 3; ++i) { b[i]->z1 = flush(b[i]->z1); b[i]->z2 = flush(b[i]->z2); }
-}
-
-float mp_eq_tick(mp_eq *e, float x) {
-    return mp_biquad_tick(&e->hi, mp_biquad_tick(&e->mid, mp_biquad_tick(&e->lo, x)));
-}
-
-/* ---------------- COMPRESSOR ---------------- */
-
-void mp_comp_set(mp_comp *c, float threshold, float ratio, float attack, float release, float fs) {
-    c->thr_db = mp_comp_threshold_db(threshold);
-    c->ratio = mp_comp_ratio(ratio);
-    c->att = expf(-1.0f / (mp_comp_attack_ms(attack) * 0.001f * fs));
-    c->rel = expf(-1.0f / (mp_comp_release_ms(release) * 0.001f * fs));
-    c->env_db = flush(c->env_db);
-}
-
-void mp_comp_tick(mp_comp *c, const float in[2], float out[2]) {
-    float target = 0.0f;
-    if (c->ratio > 1.0001f) {
-        float peak = fmaxf(fabsf(in[0]), fabsf(in[1]));
-        /* 20 log10 via logf: log10f carries a GLIBC_2.43 version the Move lacks */
-        float over = 8.68588964f * logf(peak + 1e-12f) - c->thr_db;
-        if (over > 0.0f) target = over * (1.0f - 1.0f / c->ratio);
-    }
-    float a = target > c->env_db ? c->att : c->rel;
-    c->env_db = a * c->env_db + (1.0f - a) * target;
-    float g = expf(-c->env_db * 0.115129255f);   /* 10^(-dB/20) */
-    out[0] = in[0] * g;
-    out[1] = in[1] * g;
-}
-
-/* ---------------- BITRAZER ---------------- */
-
-void mp_bitrazer_init(mp_bitrazer *b, float fs) {
-    memset(b, 0, sizeof(*b));
-    b->phase = 1.0f;
-    b->inc = 1.0f;
-    b->levels = 32768.0f;
-    b->xfade = 1.0f / (0.005f * fs);   /* 5 ms: the LPF/HPF and BYPASS switches */
-    for (int c = 0; c < 2; ++c) mp_svf_set(&b->filt[c], 0.45f * fs, 0.5f, fs);
-}
-
-void mp_bitrazer_set(mp_bitrazer *b, float rate, float bits, float cutoff, float reso,
-                     int hpf, int bypass, float fs) {
-    b->inc = mp_bit_rate_hz(rate, fs) / fs;
-    if (b->inc > 1.0f) b->inc = 1.0f;
-    b->levels = exp2f(mp_bit_bits(bits) - 1.0f);
-    for (int c = 0; c < 2; ++c) {
-        mp_svf_set(&b->filt[c], mp_bit_cutoff_hz(cutoff), mp_bit_q(reso), fs);
-        svf_flush(&b->filt[c]);
-    }
-    b->type_target = hpf ? 1.0f : 0.0f;
-    b->bypass_target = bypass ? 1.0f : 0.0f;
-}
-
-static float approach(float v, float target, float step) {
-    if (v < target) return v + step > target ? target : v + step;
-    if (v > target) return v - step < target ? target : v - step;
-    return v;
-}
-
-void mp_bitrazer_tick(mp_bitrazer *b, const float in[2], float out[2]) {
-    /* Sample rate reduction: a free-running sample-and-hold, no anti-alias
-     * filter, so the fold-over IS the sound. The held value is quantised at
-     * the instant it is taken (mid-tread). */
-    b->phase += b->inc;
-    if (b->phase >= 1.0f) {
-        b->phase -= 1.0f;
-        for (int c = 0; c < 2; ++c) b->held[c] = floorf(in[c] * b->levels + 0.5f) / b->levels;
-    }
-    b->type = approach(b->type, b->type_target, b->xfade);
-    b->bypass = approach(b->bypass, b->bypass_target, b->xfade);
-    for (int c = 0; c < 2; ++c) {
-        float lp, hp;
-        mp_svf_tick(&b->filt[c], b->held[c], &lp, NULL, &hp);
-        float wet = (1.0f - b->type) * lp + b->type * hp;
-        out[c] = b->bypass * in[c] + (1.0f - b->bypass) * wet;
     }
 }

@@ -2,57 +2,54 @@
   "title": "MONSTER PHASE",
   "children": [
     {
-      "title": "Idea",
+      "title": "Chain",
       "lines": [
-        "Port of an AIRA",
-        "Modular Customizer",
-        "patch for the Roland",
-        "BITRAZER: 2 short",
-        "delays, formant,",
-        "tube clip, EQ and",
-        "comp around the",
-        "bit crusher."
+        "Pre delay > formant",
+        "> crush > resonant",
+        "low-pass > bass >",
+        "tube > post delay.",
+        "Stereo all through;",
+        "after the BITRAZER",
+        "patch MONSTER PHASE."
       ]
     },
     {
-      "title": "Knobs",
+      "title": "Page 1",
       "lines": [
-        "1 MIX  dry <-> wet",
-        "2-7 = GRF1-6 of the",
-        "pedal, wired as in",
-        "the patch:",
-        "2 G1 sample rate",
-        "3 G2 filter cutoff",
-        "4 G3 formant 1",
-        "5 G4 EQ low",
-        "6 G5 LPF/HPF button",
-        "7 G6 bypass button",
-        "8 TIME both delays"
+        "1 MIX   dry <-> wet",
+        "2 CRUSH sample rate",
+        "  (100% = clean)",
+        "3 CUTOFF 120Hz-18kHz",
+        "4 RESO  resonance",
+        "5 VOWEL a i u e o",
+        "6 DRIVE tube",
+        "7 BASS  low boost",
+        "8 DELAY post delay"
+      ]
+    },
+    {
+      "title": "Page 2",
+      "lines": [
+        "1 PRE T  pre delay",
+        "2 PRE FB feedback",
+        "3 PRE MX dry/wet",
+        "4 POST T post delay",
+        "5 POST FB feedback",
+        "6 WIDTH stereo",
+        "7 VOW AMT formant",
+        "8 LEVEL output dB"
       ]
     },
     {
       "title": "Stereo",
       "lines": [
-        "L and R are two",
-        "different paths:",
-        "L delay>tube>crush",
-        "R delay>formant>",
-        "tube>crush>comp>EQ",
-        "The two delays sit",
-        "3% apart in TIME."
-      ]
-    },
-    {
-      "title": "Caution",
-      "lines": [
-        "Wiring was traced",
-        "from a screenshot,",
-        "not decoded from",
-        "the patch file.",
-        "Curves of the Roland",
-        "units are not public",
-        "so the sound is an",
-        "approximation."
+        "WIDTH spreads L/R:",
+        "pre delay times,",
+        "vowel, crush clock,",
+        "post delay times",
+        "and cross feedback.",
+        "WIDTH 0 = mono in",
+        "stays mono."
       ]
     }
   ]

@@ -29,7 +29,9 @@ function check(cond, msg) {
     else console.log("ok  ", msg.split(":")[0]);
 }
 
-const KEYS = ["mix", "g1_srate", "g2_cutoff", "g3_formant", "g4_low", "g5_type", "g6_bypass", "time"];
+const PAGE1 = ["mix", "crush", "cutoff", "reso", "formant", "drive", "bass", "delay"];
+const PAGE2 = ["pre_time", "pre_fdbk", "pre_mix", "post_time", "post_fdbk", "width", "fmt_amt", "level"];
+const ALL = PAGE1.concat(PAGE2);
 const contract = JSON.parse(fs.readFileSync(path.join(here, "../build/native/contract.json"), "utf8"));
 const manifest = JSON.parse(fs.readFileSync(path.join(here, "../module.json"), "utf8"));
 const meta = Object.fromEntries(JSON.parse(contract.chain_params).map((p) => [p.key, p]));
@@ -83,39 +85,47 @@ const shot = (name) => {
 };
 ticks(40);
 
-check(JSON.stringify(ctrl.page.keys.map(bare)) === JSON.stringify(KEYS),
-      "one page = MIX GRF1-6 TIME: " + ctrl.page.keys);
+check(ctrl.pages.length === 2, "two pages: " + ctrl.pages.map((p) => p.name));
+check(JSON.stringify(ctrl.page.keys.map(bare)) === JSON.stringify(PAGE1),
+      "page 1 = MIX CRUSH CUTOFF RESO FORMANT DRIVE BASS DELAY: " + ctrl.page.keys);
 check(fb.countLit() > 200, "the page draws: " + fb.countLit());
 console.log(fb.toBlocks ? fb.toBlocks() : fb.toAscii());
-shot("main");
+shot("page1");
 
 /* the values read in their own units, straight from the DSP's answers */
-const shown = Object.fromEntries(KEYS.map((k) => [k, formatParamValue(values[k], meta[k])]));
+const shown = Object.fromEntries(ALL.map((k) => [k, formatParamValue(values[k], meta[k])]));
 console.log("     values:", JSON.stringify(shown));
-check(shown.g5_type === "LPF" && shown.g6_bypass === "OFF", "GRF5/6 buttons read as names: " + shown.g5_type + " " + shown.g6_bypass);
-check(shown.mix === "100%" && shown.g1_srate === "70%" && shown.g2_cutoff === "90%" && shown.time === "100%",
-      "the knobs read in %: " + JSON.stringify(shown));
+check(shown.mix === "100%" && shown.crush === "70%" && shown.cutoff === "80%", "page 1 reads in %: " + shown.cutoff);
+check(/^80(\.0)? ?ms$/.test(shown.pre_time) && /^300 ?ms$/.test(shown.post_time), "delay times read in ms: " + shown.pre_time + " " + shown.post_time);
+check(/^0\.0 ?dB$/.test(shown.level), "LEVEL reads in dB: " + shown.level);
 
-/* every knob writes its own key, within its range */
-for (let k = 0; k < 8; k++) {
-    const w0 = writes.length;
-    for (let i = 0; i < 5; i++) { ctrl.tick(); applyInput(ctrl, decodeInput([0xb0, 71 + k, 1], {}), { nowMs: (clock += 17) }); }
-    ticks(10);
-    const mine = writes.slice(w0).filter(([key]) => key === KEYS[k]);
-    const m = meta[KEYS[k]];
-    const inRange = ([, v]) => m.type === "enum" ? m.options.includes(String(v).toUpperCase()) ||
-        (Number(v) >= 0 && Number(v) < m.options.length) : Number(v) >= m.min && Number(v) <= m.max;
-    check(mine.length > 0 && mine.every(inRange), `knob ${k + 1} = ${KEYS[k]}: ` + writes.slice(w0));
+/* every knob writes its own key, within its range, on both pages */
+function knobs(keys) {
+    for (let k = 0; k < 8; k++) {
+        const w0 = writes.length;
+        for (let i = 0; i < 5; i++) { ctrl.tick(); applyInput(ctrl, decodeInput([0xb0, 71 + k, 1], {}), { nowMs: (clock += 17) }); }
+        ticks(10);
+        const mine = writes.slice(w0).filter(([key]) => key === keys[k]);
+        const m = meta[keys[k]];
+        check(mine.length > 0 && mine.every(([, v]) => Number(v) >= m.min && Number(v) <= m.max),
+              `knob ${k + 1} = ${keys[k]}: ` + writes.slice(w0));
+    }
 }
-applyInput(ctrl, decodeInput([0x90, 1, 127], {}), { nowMs: clock }); ticks(4);   /* touch GRF1 */
-shot("touch_grf1");
+knobs(PAGE1);
+applyInput(ctrl, decodeInput([0xb0, 14, 1], {}), { nowMs: (clock += 17) });   /* jog: next page */
+ticks(20);
+check(JSON.stringify(ctrl.page.keys.map(bare)) === JSON.stringify(PAGE2),
+      "page 2 = PRE T PRE FB PRE MX POST T POST FB WIDTH VOW AMT LEVEL: " + ctrl.page.keys);
 console.log(fb.toBlocks ? fb.toBlocks() : fb.toAscii());
-applyInput(ctrl, decodeInput([0x90, 1, 0], {}), { nowMs: clock }); ticks(80);
+shot("page2");
+knobs(PAGE2);
+applyInput(ctrl, decodeInput([0x90, 3, 127], {}), { nowMs: clock }); ticks(4);   /* touch POST T */
+shot("touch_post_time");
+console.log(fb.toBlocks ? fb.toBlocks() : fb.toAscii());
 
 check(manifest.capabilities.chain_params[0].key === "mix", "knob 1 is MIX");
-check(manifest.capabilities.chain_params[7].key === "time", "knob 8 is TIME");
+check(manifest.capabilities.chain_params.map((p) => p.key).join() === ALL.join(), "chain_params in page order");
 check(!("ui_chain" in manifest), "no module screen: the standard grid everywhere (Master FX too)");
-check(["LPF", "HPF"].includes(values.g5_type) && ["OFF", "ON"].includes(values.g6_bypass), "GRF5/6 stay two-way: " + values.g5_type + " " + values.g6_bypass);
 check(JSON.parse(contract.ui_hierarchy).levels.root.knobs.every((k) => k in meta), "every knob is in chain_params");
 
 if (failures) { console.error(`${failures} GRID FAILURE(S)`); process.exit(1); }

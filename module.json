@@ -2,8 +2,8 @@
   "id": "monster-phase",
   "name": "MONSTER PHASE",
   "abbrev": "MPHS",
-  "version": "0.1.0",
-  "description": "Port of the AIRA Modular Customizer patch BITRAZER_MONSTER_PHASE for the Roland BITRAZER: two SHORT DELAYs, FORMANT FILTER, TUBE CLIP, 3 BAND EQ and COMPRESSOR patched around the BITRAZER crusher, run as a data-driven graph from the saved patch file. Knob 1 MIX, knobs 2-7 the pedal's GRF1-6, knob 8 delay TIME. Wiring traced from the screenshot (approximate). Works in track slots and in Master FX",
+  "version": "0.2.0",
+  "description": "Stereo crusher chain inspired by the AIRA BITRAZER patch MONSTER PHASE: pre delay, vowel formant filter, sample rate crusher, resonant low-pass, bass boost, tube saturation and a stereo post delay. Page 1 shapes the sound, page 2 sets the delays, the width and the level. Works in track slots and in Master FX",
   "author": "Hiro Ikezawa",
   "api_version": 2,
   "dsp": "monster-phase.so",
@@ -17,13 +17,21 @@
     "midi_out": false,
     "chain_params": [
       {"key": "mix", "name": "Mix", "short_name": "MIX", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 1.0, "unit": "%", "display_format": "%.0f"},
-      {"key": "g1_srate", "name": "GRF1 Sample Rate", "short_name": "G1 SR", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.7, "unit": "%", "display_format": "%.0f"},
-      {"key": "g2_cutoff", "name": "GRF2 Filter Cutoff", "short_name": "G2 CUT", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.9, "unit": "%", "display_format": "%.0f"},
-      {"key": "g3_formant", "name": "GRF3 Formant 1", "short_name": "G3 FMT", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.0, "unit": "%", "display_format": "%.0f"},
-      {"key": "g4_low", "name": "GRF4 EQ Low", "short_name": "G4 LOW", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.0, "unit": "%", "display_format": "%.0f"},
-      {"key": "g5_type", "name": "GRF5 LPF/HPF", "short_name": "G5 TYP", "type": "enum", "options": ["LPF", "HPF"], "default": "LPF"},
-      {"key": "g6_bypass", "name": "GRF6 Bypass", "short_name": "G6 BYP", "type": "enum", "options": ["OFF", "ON"], "default": "OFF"},
-      {"key": "time", "name": "Delay Time", "short_name": "TIME", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 1.0, "unit": "%", "display_format": "%.0f"}
+      {"key": "crush", "name": "Crush", "short_name": "CRUSH", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.7, "unit": "%", "display_format": "%.0f"},
+      {"key": "cutoff", "name": "Cutoff", "short_name": "CUTOFF", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.8, "unit": "%", "display_format": "%.0f"},
+      {"key": "reso", "name": "Resonance", "short_name": "RESO", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.4, "unit": "%", "display_format": "%.0f"},
+      {"key": "formant", "name": "Formant", "short_name": "VOWEL", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.0, "unit": "%", "display_format": "%.0f"},
+      {"key": "drive", "name": "Drive", "short_name": "DRIVE", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.35, "unit": "%", "display_format": "%.0f"},
+      {"key": "bass", "name": "Bass", "short_name": "BASS", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.4, "unit": "%", "display_format": "%.0f"},
+      {"key": "delay", "name": "Delay", "short_name": "DELAY", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.3, "unit": "%", "display_format": "%.0f"},
+      {"key": "pre_time", "name": "Pre Time", "short_name": "PRE T", "type": "float", "min": 0.5, "max": 80, "step": 0.5, "default": 80, "unit": "ms", "display_format": "%.1f"},
+      {"key": "pre_fdbk", "name": "Pre Feedback", "short_name": "PRE FB", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.61, "unit": "%", "display_format": "%.0f"},
+      {"key": "pre_mix", "name": "Pre Mix", "short_name": "PRE MX", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.48, "unit": "%", "display_format": "%.0f"},
+      {"key": "post_time", "name": "Post Time", "short_name": "POST T", "type": "float", "min": 20, "max": 1000, "step": 5, "default": 300, "unit": "ms", "display_format": "%.0f"},
+      {"key": "post_fdbk", "name": "Post Feedback", "short_name": "POST FB", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.35, "unit": "%", "display_format": "%.0f"},
+      {"key": "width", "name": "Width", "short_name": "WIDTH", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.6, "unit": "%", "display_format": "%.0f"},
+      {"key": "fmt_amt", "name": "Formant Amount", "short_name": "VOW AMT", "type": "float", "min": 0, "max": 1, "step": 0.01, "default": 0.6, "unit": "%", "display_format": "%.0f"},
+      {"key": "level", "name": "Level", "short_name": "LEVEL", "type": "float", "min": -12, "max": 12, "step": 0.5, "default": 0, "unit": "dB", "display_format": "%.1f"}
     ]
   }
 }

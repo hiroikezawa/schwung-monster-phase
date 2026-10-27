@@ -1,16 +1,15 @@
 # Third-party code in MONSTER PHASE
 
 MONSTER PHASE's DSP is entirely original (Copyright (c) 2026 Hiro Ikezawa,
-MIT, see `LICENSE`). It re-creates a patch made in Roland's AIRA Modular
-Customizer for the Roland BITRAZER from the patch file the user saved, the
-public descriptions of the modules, and the unofficial MIDI implementation
-by Mugenkidou (https://github.com/mugenkidou/AIRA_Modular_Effects, used only
-as a reference for module type ids, parameter order and patch-point ids; no
-code). Roland's DSP is not published and no Roland code or data is included.
-The primitives - TPT state-variable filters, RBJ biquads, a Hermite
+MIT, see `LICENSE`). It is an independent design after a patch made in
+Roland's AIRA Modular Customizer for the Roland BITRAZER. The patch analyser
+in `tools/` used the unofficial MIDI implementation by Mugenkidou
+(https://github.com/mugenkidou/AIRA_Modular_Effects) only as a reference for
+module type ids, parameter order and patch-point ids; no code. Roland's DSP
+is not published and no Roland code or data is included.
+The primitives - TPT state-variable filters, an RBJ shelf, a Hermite
 fractional delay read, a windowed-sinc 4x resampler, a rational tanh, a
-feed-forward compressor, a sample-and-hold crusher - were written here from
-the mathematics. The vowel formant table is the standard published tenor
+sample-and-hold crusher - were written here from the mathematics. The vowel formant table is the standard published tenor
 formant data (frequencies, levels, bandwidths), not anyone's code.
 
 "Roland", "AIRA" and "BITRAZER" are trademarks of Roland Corporation; this

@@ -1,46 +1,69 @@
 # MONSTER PHASE
 
-Ableton Move 用 Schwung のオーディオエフェクト。Roland **AIRA Modular BITRAZER**（ビットクラッシャー
-ペダル）用に AIRA Modular Customizer で作られたパッチ `BITRAZER_MONSTER_PHASE` を、保存された
-パッチファイルから再現する。
-
-パッチは BITRAZER 本体の周りに 6 つのサブモジュール（SHORT DELAY ×2、FORMANT FILTER、TUBE CLIP、
-3 BAND EQ、COMPRESSOR）をケーブルでつないだもの。このモジュールはそれを直列エフェクトとして
-書き直すのではなく、**パッチファイルのモジュール種別・生パラメータと配線表からグラフを組み立てて**
-動かす（分岐・加算・フィードバックにも対応）。
-
-> **再現の範囲について**: モジュールの種類とパラメータの生値はファイルから確定している。
-> 一方、**配線はスクリーンショットから目で追跡したもの**（ファイルの配線領域は未解読）で、
-> Roland の各モジュールの DSP と換算曲線は公開されていないため、**音は近似**である。
-> 何が確定で何が推定・暫定かは [docs/ANALYSIS.md](docs/ANALYSIS.md) に全部書いてある。
-> 原機との聴き比べはしていない。
-
-## 信号の流れ（追跡した配線）
+Ableton Move 用 Schwung のステレオ・オーディオエフェクト。Roland AIRA Modular **BITRAZER**
+（ビットクラッシャーペダル）用に AIRA Modular Customizer で作られたパッチ
+`BITRAZER_MONSTER_PHASE` を下敷きに、Move 向けに組み直したもの。
 
 ```
-L: IN1 → SHORT DELAY 1 → TUBE CLIP 1 → BITRAZER 1 → OUT1
-R: IN2 → SHORT DELAY 2 → FORMANT → TUBE CLIP 2 → BITRAZER 2 → COMPRESSOR → 3 BAND EQ → OUT2
+入力 → プリディレイ → フォルマント → クラッシャー → レゾナンス LPF → 低音ブースト → チューブ
+     → ＋ポストディレイ → レベル → MIX（原音と混ぜる）→ 出力
 ```
 
-左右は別々の経路で、2 つの SHORT DELAY は TIME が 3 % ずれている（77.6 ms と 80 ms、推定）。
+- **クラッシャー**: サンプルレートを下げるサンプル＆ホールド。アンチエイリアスなしで、折り返しも音の
+  一部として残す。ビット深度は落とさない。
+- **レゾナンス LPF**: 状態変数フィルタ。カットオフの下限は 120 Hz なので、絞り切っても低音は残る。
+- **フォルマント**: 母音 a → i → u → e → o の 3 フォルマント（標準のテノール表）。ノブで母音が連続的に
+  変わり、量（VOW AMT）で原音との割合を決める。
+- **チューブ**: 非対称ソフトクリップ（偶数次倍音）、4 倍オーバーサンプリング。DRIVE を上げても音量が
+  あまり変わらないよう、出力を自動で下げる。
+- **低音ブースト**: 110 Hz のローシェルフ、0〜+12 dB。チューブの手前にあるので、上げるほど低音が太く
+  歪む。
+- **ディレイ 2 段**: 前段は元パッチの SHORT DELAY と同じ 80 ms までのディレイ（フィードバック付き、
+  ドライ/ウェット）。後段は 20〜1000 ms のステレオディレイで、原音に足される。
+
+## ステレオ
+
+すべての段が左右別々に動き、WIDTH で左右の違いの量を決める。WIDTH 100 % では次のとおり。
+
+| 段 | 左右の違い |
+|---|---|
+| プリディレイ | 右が 3 % 短い（元パッチの 2 つの SHORT DELAY と同じ差） |
+| フォルマント | 左は母音が手前、右は先にずれる（±0.35 母音） |
+| クラッシャー | 右のサンプリングのタイミングを半周期ずらす |
+| ポストディレイ | 右が 25 % 長く、フィードバックの半分が反対側へ渡る |
+
+WIDTH 0 % ではモノラルの入力はモノラルのまま出る。
 
 ## ノブ
 
-| ノブ | 名前 | 中身 |
-|---|---|---|
-| 1 | MIX | 全体のドライ/ウェット（Schwung 側で追加。ペダルにはない）。既定 100 % |
-| 2 | G1 SR | ペダルの GRF1 ノブ。パッチの配線で BITRAZER の SAMPLE RATE へ |
-| 3 | G2 CUT | GRF2 ノブ → BITRAZER の FILTER CUTOFF |
-| 4 | G3 FMT | GRF3 ノブ → FORMANT FILTER の FORMANT 1（a→i→u→e→o） |
-| 5 | G4 LOW | GRF4 ノブ → 3 BAND EQ の LOW（右チャンネルの低域ブースト） |
-| 6 | G5 TYP | GRF5 ボタン → BITRAZER の LPF/HPF 切り替え |
-| 7 | G6 BYP | GRF6 ボタン → BITRAZER の BYPASS（ディレイ等のサブモジュールは動いたまま） |
-| 8 | TIME | 2 つの SHORT DELAY の TIME を一緒に動かす（差は保持）。GRF ではない追加ノブ |
+ページ 1（音）:
 
-ノブ 2〜7 は「GRF がどこにつながっているか」をパッチの配線どおりに再現したもので、ノブ自体に
-機能を割り当てたのではない。GRF のケーブル先が原機の既定（GRF3 = BIT DOWN、GRF4 = RESONANCE）と
-違うのは、このパッチでそう配線されているため。GRF1〜4 の既定位置はパッチに入っていないので
-ここで決めた値（SR 70 %、CUTOFF 90 %、他 0）。
+| ノブ | 表示 | 内容 | 既定 |
+|---|---|---|---|
+| 1 | MIX | 原音とエフェクト音の割合 | 100 % |
+| 2 | CRUSH | サンプルレート。100 % で無加工、下げるほど荒く（0.1.0 のノブ 2 と同じ効き方） | 70 % |
+| 3 | CUTOFF | ローパスのカットオフ 120 Hz〜18 kHz | 80 % |
+| 4 | RESO | レゾナンス（Q 0.6〜14） | 40 % |
+| 5 | VOWEL | フォルマントの母音 a・i・u・e・o | 0 %（a） |
+| 6 | DRIVE | チューブの歪み（0〜+30 dB） | 35 % |
+| 7 | BASS | 低音ブースト（0〜+12 dB） | 40 % |
+| 8 | DELAY | ポストディレイの音量 | 30 % |
+
+ページ 2（ディレイとステレオ）。ジョグで切り替える:
+
+| ノブ | 表示 | 内容 | 既定 |
+|---|---|---|---|
+| 1 | PRE T | プリディレイの時間 0.5〜80 ms | 80 ms |
+| 2 | PRE FB | プリディレイのフィードバック | 61 % |
+| 3 | PRE MX | プリディレイのドライ/ウェット | 48 % |
+| 4 | POST T | ポストディレイの時間 20〜1000 ms | 300 ms |
+| 5 | POST FB | ポストディレイのフィードバック | 35 % |
+| 6 | WIDTH | ステレオの広がり | 60 % |
+| 7 | VOW AMT | フォルマントの量 | 60 % |
+| 8 | LEVEL | 出力レベル −12〜+12 dB | 0 dB |
+
+プリディレイの既定値（80 ms、61 %、48 %）は元パッチの SHORT DELAY の保存値から取った。
+PRE T を数 ms まで下げると、フランジャーやコムフィルターのような音になる。
 
 ## 必要なもの
 
@@ -62,49 +85,35 @@ bash scripts/build.sh arm64     # dist/monster-phase-module.tar.gz
 bash scripts/test.sh            # 全テスト
 ```
 
-`scripts/test.sh` が実行するもの:
+`tests/test_engine.c` で次のことを確かめている。
 
-- `tests/test_patch.py` — パッチ解析ツール（ヘッダー、6 モジュールの ID と生値、差分、配線表の検証）
-- `tests/test_engine.c` — 換算、配線グラフ（左右の分離、加算、分岐、閉路）、ディレイの遅延量・
-  フィードバック・コム、フィルターの安定性、TUBE CLIP の倍音とオーバーサンプリング、
-  コンプのアタック/リリース、BITRAZER、ノブを毎ブロック乱暴に動かした安定性、ブロック長に依らない
-  出力、48 kHz、CPU、プラグイン API。AddressSanitizer + UBSan でも実行
-- `tests/test_grid.mjs` — Schwung の本物のページエンジンでノブ 8 個の表示と書き込み
-- arm64 ビルドの ABI 検査、ライセンス検査
+- 各段の動作: ディレイの時間とフィードバック、レゾナンスの持ち上がり、母音ごとのフォルマントの
+  周波数、低音ブーストの量、チューブの倍音とオーバーサンプリングの効果、クラッシャーの間隔と
+  左右のずれ
+- 全体: どのノブを端まで回しても音量が入力の −12〜+9 dB に収まること、既定でステレオになること、
+  WIDTH 0 でモノラルのままなこと
+- 安定性: 全ノブを毎ブロック乱暴に動かしても発散しないこと、入力を止めると消えること
+- その他: ブロック長によらず同じ出力になること、48 kHz 動作、CPU 負荷、プラグイン API
 
-Move 上の CPU 計測: `build/bench-device-arm64` を Move にコピーして `taskset 0x7` で実行する。
+AddressSanitizer + UBSan でも実行し、`tests/test_grid.mjs` で Schwung のページエンジンを使って
+2 ページ分の表示と書き込みを確かめている。
 
-## パッチ解析ツール
+## 元パッチについて
 
-```bash
-python3 tools/aira_patch.py dump patch/BITRAZER_MONSTER_PHASE.bin
-python3 tools/aira_patch.py diff A.bin B.bin
-python3 tools/aira_patch.py routing patch/routing_screenshot.json patch/BITRAZER_MONSTER_PHASE.bin
-```
-
-配線領域（`0x80–0x47F`）は未解読。Customizer でケーブルを **1 本だけ** 変えたパッチを保存して
-`diff` にかければ、そのケーブルが入っているバイトが分かる。手順は docs/ANALYSIS.md §5。
-
-## ファイル
-
-| パス | 内容 |
-|---|---|
-| `patch/BITRAZER_MONSTER_PHASE.bin` | 元のパッチ（ビルド時に SHA-256 を検査して C ヘッダーへ） |
-| `patch/routing_screenshot.json` | スクリーンショットから追跡した配線（暫定、各ケーブルに根拠と確度） |
-| `reference/` | 提供されたスクリーンショットと仕様書（パッケージには入らない） |
-| `tools/aira_patch.py` | パッチ解析・差分・配線検証・ヘッダー生成 |
-| `dsp/mp_convert.*` | 生値 → 物理単位の換算（版数付き、各曲線に確定/推定/暫定の区分） |
-| `dsp/mp_dsp.*` | 7 つの処理ブロック |
-| `dsp/mp_engine.*` | データ駆動の配線グラフ |
-| `dsp/mp_plugin.c` | Schwung のプラグイン API |
-| `docs/ANALYSIS.md` | 解析記録 |
+0.1.0 は、元パッチをファイルから忠実に再現しようとした版だった。その解析記録（ファイル構造、
+推定した配線、パッチ解析ツール `tools/aira_patch.py`）は [docs/ANALYSIS.md](docs/ANALYSIS.md) と
+`patch/`、`reference/` に残してある。0.2.0 からは再現をやめ、元パッチの要素（クラッシャー、
+フィルター、フォルマント、チューブ、低音、2 段ディレイ）を使った独自の設計になっている。
 
 ## ライセンス
 
 MIT（[LICENSE](LICENSE)）。Copyright (c) 2026 Hiro Ikezawa。第三者のコードについては
 [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)。Roland、AIRA、BITRAZER は Roland の商標で、
-このモジュールは Roland とは関係のない独自の再現である。
+このモジュールは Roland とは関係がない。
 
 ## 変更履歴
 
-- 0.1.0 — 最初の版
+- 0.2.0 — 作り直し。ステレオの直列チェーン（プリディレイ、フォルマント、クラッシャー、レゾナンス
+  LPF、低音、チューブ、ポストディレイ）に変更。2 ページ 16 ノブ。ビット深度の削減をやめ、
+  カットオフの下限を 120 Hz に上げた
+- 0.1.0 — 元パッチの再現を目指した最初の版

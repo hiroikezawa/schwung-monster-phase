@@ -24,14 +24,14 @@ static double now_us(void) {
 static mp_engine e;
 
 int main(void) {
-    const char *names[3] = {"defaults", "all knobs moving", "crushed + HPF"};
+    const char *names[3] = {"defaults", "all knobs moving", "crushed + max reso"};
     int16_t buf[256];
     uint32_t rng = 1;
     for (int c = 0; c < 3; ++c) {
         mp_engine_init(&e, 44100.0f);
         if (c == 2) {
-            mp_engine_set(&e, MP_P_GRF1, 0.1f);
-            mp_engine_set(&e, MP_P_GRF5, 1.0f);
+            mp_engine_set(&e, MP_P_CRUSH, 0.1f);
+            mp_engine_set(&e, MP_P_RESO, 1.0f);
             mp_engine_snap(&e);
         }
         double worst = 0, total = 0;
@@ -44,7 +44,7 @@ int main(void) {
             if (c == 1)
                 for (int p = 1; p < MP_P_COUNT; ++p) {
                     rng = rng * 1664525u + 1013904223u;
-                    mp_engine_set(&e, p, (rng >> 8) * (1.0f / 16777216.0f));
+                    mp_engine_set(&e, p, MP_PARAMS[p].min + (MP_PARAMS[p].max - MP_PARAMS[p].min) * ((rng >> 8) * (1.0f / 16777216.0f)));
                 }
             double t0 = now_us();
             mp_engine_process(&e, buf, 128);
