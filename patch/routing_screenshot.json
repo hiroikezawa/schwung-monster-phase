@@ -1,0 +1,24 @@
+{
+ "id": "approximate_routing:screenshot_trace_v1",
+ "status": "APPROXIMATE. Traced by eye from reference/MONSTER_PHASE_reference.png (587x800). NOT decoded from BITRAZER_MONSTER_PHASE.bin: the file's cable area (0x80..0x47F, 18 non-zero bytes) is not decoded, and this trace finds 17 cables, so at least one cable may be missing or mis-traced.",
+ "ids": "src/dst names map to the public SysEx patching ids (mugenkidou/AIRA_Modular_Effects v1.2, 10 20 ss dd). MAIN.MODk = 'MAIN MODULE MOD IN k'; which parameter each MOD IN drives is a guess (MOD k = PARAMETER k), but the screenshot shows WHICH JACK each cable lands on, and the jack is labelled by the panel arrow.",
+ "edges": [
+  {"src": "INPUT1",    "dst": "SUB1.IN1",  "confidence": "high",   "evidence": "green, INPUT 1 straight up to SHORT DELAY 1 IN (passes over 3 BAND EQ IN)"},
+  {"src": "INPUT2",    "dst": "SUB2.IN1",  "confidence": "high",   "evidence": "pink, INPUT 2 to SHORT DELAY 2 IN"},
+  {"src": "SUB1.OUT1", "dst": "SUB4.IN1",  "confidence": "high",   "evidence": "purple arc, SHORT DELAY 1 OUT over BITRAZER to TUBE CLIP IN 1"},
+  {"src": "SUB2.OUT1", "dst": "SUB3.IN1",  "confidence": "high",   "evidence": "salmon, SHORT DELAY 2 OUT to FORMANT FILTER IN"},
+  {"src": "SUB3.OUT1", "dst": "SUB4.IN2",  "confidence": "high",   "evidence": "orange, FORMANT FILTER OUT to TUBE CLIP IN 2"},
+  {"src": "SUB4.OUT1", "dst": "MAIN.IN1",  "confidence": "medium", "evidence": "yellow-green, TUBE CLIP OUT 1 to BITRAZER IN 1"},
+  {"src": "SUB4.OUT2", "dst": "MAIN.IN2",  "confidence": "medium", "evidence": "green, TUBE CLIP OUT 2 to BITRAZER IN 2"},
+  {"src": "MAIN.OUT1", "dst": "OUTPUT1",   "confidence": "high",   "evidence": "teal, BITRAZER OUT 1 to OUTPUT 1"},
+  {"src": "MAIN.OUT2", "dst": "SUB6.IN1",  "confidence": "high",   "evidence": "pink, BITRAZER OUT 2 to COMPRESSOR IN 1"},
+  {"src": "SUB6.OUT1", "dst": "SUB5.IN1",  "confidence": "medium", "evidence": "light blue, COMPRESSOR OUT 1 down below the panel, up into 3 BAND EQ IN"},
+  {"src": "SUB5.OUT1", "dst": "OUTPUT2",   "confidence": "medium", "evidence": "blue, 3 BAND EQ OUT down below the panel, up into OUTPUT 2"},
+  {"src": "GRF1",      "dst": "MAIN.MOD3", "confidence": "high",   "evidence": "blue, GRF 1 to the BITRAZER jack whose arrow feeds the SAMPLE RATE LEVEL knob"},
+  {"src": "GRF2",      "dst": "MAIN.MOD4", "confidence": "medium", "evidence": "blue, GRF 2 to the jack feeding the FILTER CUTOFF LEVEL knob"},
+  {"src": "GRF3",      "dst": "SUB3.IN2",  "confidence": "high",   "evidence": "cyan, GRF 3 straight up to the FORMANT 1 jack"},
+  {"src": "GRF4",      "dst": "SUB5.IN4",  "confidence": "high",   "evidence": "yellow, GRF 4 to 3 BAND EQ LOW jack"},
+  {"src": "GRF5",      "dst": "MAIN.MOD1", "confidence": "medium", "evidence": "green, GRF 5 to the top-left BITRAZER jack whose arrow points at the TYPE (LPF/HPF) switch"},
+  {"src": "GRF6",      "dst": "MAIN.MOD2", "confidence": "high",   "evidence": "magenta, GRF 6 straight up to the top-right jack above the BYPASS switch"}
+ ]
+}

@@ -1,0 +1,190 @@
+{
+  "filename": "BITRAZER_MONSTER_PHASE.bin",
+  "size_bytes": 1212,
+  "sha256": "f27c95ff684e9e155f7c71ea75f53fe5d62701623b0ee663f847b30584d23843",
+  "header_ascii": "HabPatchFile0001",
+  "modules": [
+    {
+      "slot": 1,
+      "name": "SHORT DELAY",
+      "offset_hex": "0x0038",
+      "module_id": 16,
+      "parameter_bytes": [
+        3,
+        61,
+        48,
+        0
+      ],
+      "reserved_bytes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 2,
+      "name": "SHORT DELAY",
+      "offset_hex": "0x0040",
+      "module_id": 16,
+      "parameter_bytes": [
+        0,
+        61,
+        48,
+        0
+      ],
+      "reserved_bytes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 3,
+      "name": "FORMANT FILTER",
+      "offset_hex": "0x0048",
+      "module_id": 28,
+      "parameter_bytes": [
+        0,
+        1,
+        0,
+        0
+      ],
+      "reserved_bytes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 4,
+      "name": "TUBE CLIP",
+      "offset_hex": "0x0050",
+      "module_id": 17,
+      "parameter_bytes": [
+        27,
+        75,
+        0,
+        0
+      ],
+      "reserved_bytes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 5,
+      "name": "3 BAND EQ",
+      "offset_hex": "0x0058",
+      "module_id": 20,
+      "parameter_bytes": [
+        50,
+        50,
+        50,
+        0
+      ],
+      "reserved_bytes": [
+        0,
+        0,
+        0
+      ]
+    },
+    {
+      "slot": 6,
+      "name": "COMPRESSOR",
+      "offset_hex": "0x0060",
+      "module_id": 18,
+      "parameter_bytes": [
+        0,
+        0,
+        10,
+        10
+      ],
+      "reserved_bytes": [
+        0,
+        0,
+        0
+      ]
+    }
+  ],
+  "main_module_raw_hex": "01 00 00 00 00 32 00 64 64 32 64 00 00 00 00 00",
+  "nonzero_bytes_after_offset_0x80": [
+    {
+      "offset_hex": "0x0082",
+      "value_decimal": 15
+    },
+    {
+      "offset_hex": "0x00B0",
+      "value_decimal": 16
+    },
+    {
+      "offset_hex": "0x00D2",
+      "value_decimal": 8
+    },
+    {
+      "offset_hex": "0x00FD",
+      "value_decimal": 6
+    },
+    {
+      "offset_hex": "0x0133",
+      "value_decimal": 5
+    },
+    {
+      "offset_hex": "0x0153",
+      "value_decimal": 12
+    },
+    {
+      "offset_hex": "0x0167",
+      "value_decimal": 8
+    },
+    {
+      "offset_hex": "0x0178",
+      "value_decimal": 13
+    },
+    {
+      "offset_hex": "0x01A3",
+      "value_decimal": 14
+    },
+    {
+      "offset_hex": "0x01C8",
+      "value_decimal": 17
+    },
+    {
+      "offset_hex": "0x0210",
+      "value_decimal": 9
+    },
+    {
+      "offset_hex": "0x0232",
+      "value_decimal": 12
+    },
+    {
+      "offset_hex": "0x0282",
+      "value_decimal": 3
+    },
+    {
+      "offset_hex": "0x02DB",
+      "value_decimal": 4
+    },
+    {
+      "offset_hex": "0x031A",
+      "value_decimal": 9
+    },
+    {
+      "offset_hex": "0x0345",
+      "value_decimal": 15
+    },
+    {
+      "offset_hex": "0x036D",
+      "value_decimal": 13
+    },
+    {
+      "offset_hex": "0x03DA",
+      "value_decimal": 12
+    }
+  ],
+  "notes": [
+    "Module slot records appear to be 8-byte blocks from offset 0x38.",
+    "Parameters listed are raw bytes; physical units not verified.",
+    "Cable/graph format has not been validated; nonzero bytes are provided for further reverse engineering."
+  ]
+}

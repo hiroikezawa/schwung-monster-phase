@@ -1,0 +1,59 @@
+{
+  "title": "MONSTER PHASE",
+  "children": [
+    {
+      "title": "Idea",
+      "lines": [
+        "Port of an AIRA",
+        "Modular Customizer",
+        "patch for the Roland",
+        "BITRAZER: 2 short",
+        "delays, formant,",
+        "tube clip, EQ and",
+        "comp around the",
+        "bit crusher."
+      ]
+    },
+    {
+      "title": "Knobs",
+      "lines": [
+        "1 MIX  dry <-> wet",
+        "2-7 = GRF1-6 of the",
+        "pedal, wired as in",
+        "the patch:",
+        "2 G1 sample rate",
+        "3 G2 filter cutoff",
+        "4 G3 formant 1",
+        "5 G4 EQ low",
+        "6 G5 LPF/HPF button",
+        "7 G6 bypass button",
+        "8 TIME both delays"
+      ]
+    },
+    {
+      "title": "Stereo",
+      "lines": [
+        "L and R are two",
+        "different paths:",
+        "L delay>tube>crush",
+        "R delay>formant>",
+        "tube>crush>comp>EQ",
+        "The two delays sit",
+        "3% apart in TIME."
+      ]
+    },
+    {
+      "title": "Caution",
+      "lines": [
+        "Wiring was traced",
+        "from a screenshot,",
+        "not decoded from",
+        "the patch file.",
+        "Curves of the Roland",
+        "units are not public",
+        "so the sound is an",
+        "approximation."
+      ]
+    }
+  ]
+}
