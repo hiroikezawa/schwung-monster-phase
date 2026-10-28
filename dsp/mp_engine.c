@@ -92,6 +92,16 @@ void mp_engine_reset(mp_engine *e) {
 }
 
 void mp_engine_process_f(mp_engine *e, const float *in, float *out, int frames) {
+    if (e->asleep) {
+        if (e->p[MP_P_MIX] <= 0.0f) {
+            if (out != in) memcpy(out, in, sizeof(float) * 2 * (size_t)frames);
+            return;
+        }
+        e->asleep = 0;
+        e->wakes++;
+        for (int i = 0; i < MP_P_COUNT; ++i) e->s[i] = e->p[i];
+        mp_engine_reset(e);   /* start empty: no echo left over from before */
+    }
     for (int i = 0; i < frames; ++i) {
         if (e->sample++ % MP_CR == 0) control_tick(e);
         const float dry[2] = {in[2 * i], in[2 * i + 1]};
@@ -118,15 +128,25 @@ void mp_engine_process_f(mp_engine *e, const float *in, float *out, int frames) 
             y[0] = y[1] = 0.0f;
         }
         e->mix += e->k_mix * (e->p[MP_P_MIX] - e->mix);
+        /* the one-pole never quite arrives in float; snap so MIX 0 is exact */
+        if (fabsf(e->mix - e->p[MP_P_MIX]) < 1e-4f) e->mix = e->p[MP_P_MIX];
         for (int c = 0; c < 2; ++c) {
             /* a resonance peak or a runaway loop must not reach the speakers */
             float v = clampf(y[c], -4.0f, 4.0f);
             out[2 * i + c] = dry[c] + e->mix * (v - dry[c]);
         }
+        if (e->mix <= 0.0f && e->p[MP_P_MIX] <= 0.0f) {
+            e->asleep = 1;
+            if (i + 1 < frames && out != in)
+                memcpy(out + 2 * (i + 1), in + 2 * (i + 1), sizeof(float) * 2 * (size_t)(frames - i - 1));
+            return;
+        }
     }
 }
 
 void mp_engine_process(mp_engine *e, int16_t *audio, int frames) {
+    /* asleep: the buffer already holds the input, which is the output */
+    if (e->asleep && e->p[MP_P_MIX] <= 0.0f) return;
     float in[256], out[256];
     while (frames > 0) {
         int n = frames > 128 ? 128 : frames;

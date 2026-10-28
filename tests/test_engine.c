@@ -394,6 +394,52 @@ static void test_engine(void) {
     mp_engine_process_f(&E, in, out, 128);
     check(!memcmp(in, out, sizeof(in)), "MIX 0: output = input", 0);
 
+    /* MIX 0 sleeps: after the fade nothing runs, the input passes exactly */
+    mp_engine_init(&E, FS);
+    for (int b = 0; b < 344; ++b) {   /* fill the delays */
+        for (int i = 0; i < 256; ++i) in[i] = 0.5f * noise();
+        mp_engine_process_f(&E, in, out, 128);
+    }
+    mp_engine_set(&E, MP_P_MIX, 0.0f);
+    int blocks_to_sleep = 0;
+    while (!E.asleep && blocks_to_sleep < 1000) {
+        for (int i = 0; i < 256; ++i) in[i] = 0.5f * noise();
+        mp_engine_process_f(&E, in, out, 128);
+        blocks_to_sleep++;
+    }
+    check(E.asleep && blocks_to_sleep < 100, "MIX 0: asleep once the fade ends (blocks)", blocks_to_sleep);
+    for (int i = 0; i < 256; ++i) in[i] = 0.5f * noise();
+    mp_engine_process_f(&E, in, out, 128);
+    check(!memcmp(in, out, sizeof(in)), "asleep: output = input exactly", 0);
+    {
+        static int16_t pcm[256];
+        struct timespec t0, t1;
+        double awake = 0, slept = 0;
+        for (int pass = 0; pass < 2; ++pass) {
+            mp_engine_init(&E2, FS);
+            if (pass) { mp_engine_set(&E2, MP_P_MIX, 0.0f); mp_engine_snap(&E2); }
+            clock_gettime(CLOCK_MONOTONIC, &t0);
+            for (int b = 0; b < 2000; ++b) {
+                for (int i = 0; i < 256; ++i) pcm[i] = (int16_t)(noise() * 16000);
+                mp_engine_process(&E2, pcm, 128);
+            }
+            clock_gettime(CLOCK_MONOTONIC, &t1);
+            double us = ((t1.tv_sec - t0.tv_sec) * 1e6 + (t1.tv_nsec - t0.tv_nsec) / 1e3) / 2000;
+            if (pass) slept = us; else awake = us;
+        }
+        printf("     per block: awake %.1f us, MIX 0 %.2f us\n", awake, slept);
+        check(slept < awake * 0.05, "MIX 0 costs < 5 % of running", slept / awake);
+    }
+    /* waking starts empty: silence in -> silence out, no echo from before */
+    mp_engine_set(&E, MP_P_MIX, 1.0f);
+    double echo = 0;
+    for (int b = 0; b < 344 * 2; ++b) {
+        memset(in, 0, sizeof(in));
+        mp_engine_process_f(&E, in, out, 128);
+        for (int i = 0; i < 256; ++i) echo = fmax(echo, fabs(out[i]));
+    }
+    check(!E.asleep && E.wakes == 1 && echo == 0.0, "MIX up again: wakes with empty delays (no old echo)", echo);
+
     const int N = 44100;
     static float x[2 * 44100], y1[2 * 44100], y2[2 * 44100];
     for (int i = 0; i < 2 * N; ++i) x[i] = 0.5f * noise();

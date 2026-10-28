@@ -2,7 +2,7 @@
   "id": "monster-phase",
   "name": "MONSTER PHASE",
   "abbrev": "MPHS",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Stereo crusher chain inspired by the AIRA BITRAZER patch MONSTER PHASE: pre delay, vowel formant filter, sample rate crusher, resonant low-pass, bass boost, tube saturation and a stereo post delay. Page 1 shapes the sound, page 2 sets the delays, the width and the level. Works in track slots and in Master FX",
   "author": "Hiro Ikezawa",
   "api_version": 2,

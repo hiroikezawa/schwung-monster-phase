@@ -11,6 +11,10 @@
  * crusher's sampling clock, the post delay times and its cross feedback.
  * At WIDTH 0 a mono input stays mono.
  *
+ * MIX 0 sleeps: once the fade has reached 0 nothing is computed and the
+ * input is copied through; turning MIX up again clears every delay first, so
+ * no stale echo comes back from before the sleep.
+ *
  * Coefficients follow the (smoothed) knobs every MP_CR samples; the control
  * clock counts samples, so the output does not depend on the block size.
  */
@@ -44,6 +48,8 @@ typedef struct {
 
     uint32_t sample;
     int nan_resets;
+    int asleep;                /* MIX 0 reached: nothing runs, input passes */
+    int wakes;                 /* times it woke up (tests) */
 } mp_engine;
 
 void mp_engine_init(mp_engine *e, float fs);
