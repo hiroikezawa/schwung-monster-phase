@@ -1,121 +1,133 @@
 # MONSTER PHASE
 
-Ableton Move 用 Schwung のステレオ・オーディオエフェクト。Roland AIRA Modular **BITRAZER**
-（ビットクラッシャーペダル）用に AIRA Modular Customizer で作られたパッチ
-`BITRAZER_MONSTER_PHASE` を下敷きに、Move 向けに組み直したもの。
+**English** | [日本語](README.ja.md)
+
+A stereo audio effect for Schwung on Ableton Move. It is based on the patch
+`BITRAZER_MONSTER_PHASE`, made with AIRA Modular Customizer for the Roland AIRA
+Modular **BITRAZER** (a bitcrusher pedal), and rebuilt for Move.
 
 ```
-入力 → プリディレイ → フォルマント → クラッシャー → レゾナンス LPF → 低音ブースト → チューブ
-     → ＋ポストディレイ → レベル → MIX（原音と混ぜる）→ 出力
+input → pre-delay → formant → crusher → resonant LPF → bass boost → tube
+      → + post-delay → level → MIX (blend with the dry signal) → output
 ```
 
-- **クラッシャー**: サンプルレートを下げるサンプル＆ホールド。アンチエイリアスなしで、折り返しも音の
-  一部として残す。ビット深度は落とさない。
-- **レゾナンス LPF**: 状態変数フィルタ。カットオフの下限は 120 Hz なので、絞り切っても低音は残る。
-- **フォルマント**: 母音 a → i → u → e → o の 3 フォルマント（標準のテノール表）。ノブで母音が連続的に
-  変わり、量（VOW AMT）で原音との割合を決める。
-- **チューブ**: 非対称ソフトクリップ（偶数次倍音）、4 倍オーバーサンプリング。DRIVE を上げても音量が
-  あまり変わらないよう、出力を自動で下げる。
-- **低音ブースト**: 110 Hz のローシェルフ、0〜+12 dB。チューブの手前にあるので、上げるほど低音が太く
-  歪む。
-- **ディレイ 2 段**: 前段は元パッチの SHORT DELAY と同じ 80 ms までのディレイ（フィードバック付き、
-  ドライ/ウェット）。後段は 20〜1000 ms のステレオディレイで、原音に足される。
+- **Crusher**: a sample-and-hold that lowers the sample rate. No anti-aliasing;
+  the aliasing is kept as part of the sound. Bit depth is not reduced.
+- **Resonant LPF**: a state-variable filter. The cutoff stops at 120 Hz, so the
+  low end stays even when it is closed all the way.
+- **Formant**: three formants for the vowels a → i → u → e → o (the standard
+  tenor table). The knob morphs the vowel continuously; the amount (VOW AMT)
+  sets the balance with the unprocessed signal.
+- **Tube**: an asymmetric soft clip (even harmonics), 4× oversampled. The output
+  is lowered automatically so the level changes little as DRIVE goes up.
+- **Bass boost**: a 110 Hz low shelf, 0 to +12 dB. It sits before the tube, so
+  the more you add, the fatter and more distorted the low end gets.
+- **Two delays**: the first is a delay up to 80 ms like the original patch's
+  SHORT DELAY (with feedback and dry/wet). The second is a 20–1000 ms stereo
+  delay added on top of the signal.
 
-## ステレオ
+## Stereo
 
-すべての段が左右別々に動き、WIDTH で左右の違いの量を決める。WIDTH 100 % では次のとおり。
+Every stage runs separately for left and right, and WIDTH sets how much the two
+sides differ. At WIDTH 100 %:
 
-| 段 | 左右の違い |
+| Stage | Left/right difference |
 |---|---|
-| プリディレイ | 右が 3 % 短い（元パッチの 2 つの SHORT DELAY と同じ差） |
-| フォルマント | 左は母音が手前、右は先にずれる（±0.35 母音） |
-| クラッシャー | 右のサンプリングのタイミングを半周期ずらす |
-| ポストディレイ | 右が 25 % 長く、フィードバックの半分が反対側へ渡る |
+| Pre-delay | Right is 3 % shorter (the same difference as the original patch's two SHORT DELAYs) |
+| Formant | Left's vowel sits earlier, right's later (±0.35 vowel) |
+| Crusher | Right samples half a period later |
+| Post-delay | Right is 25 % longer, and half of the feedback crosses to the other side |
 
-WIDTH 0 % ではモノラルの入力はモノラルのまま出る。
+At WIDTH 0 % a mono input comes out mono.
 
-## ノブ
+## Knobs
 
-ページ 1（音）:
+Page 1 (sound):
 
-| ノブ | 表示 | 内容 | 既定 |
+| Knob | Display | What it does | Default |
 |---|---|---|---|
-| 1 | MIX | 原音とエフェクト音の割合。0 % で処理が止まり CPU をほぼ使わない | 100 % |
-| 2 | CRUSH | サンプルレート。100 % で無加工、下げるほど荒く（0.1.0 のノブ 2 と同じ効き方） | 70 % |
-| 3 | CUTOFF | ローパスのカットオフ 120 Hz〜18 kHz | 80 % |
-| 4 | RESO | レゾナンス（Q 0.6〜14） | 40 % |
-| 5 | VOWEL | フォルマントの母音 a・i・u・e・o | 0 %（a） |
-| 6 | DRIVE | チューブの歪み（0〜+30 dB） | 35 % |
-| 7 | BASS | 低音ブースト（0〜+12 dB） | 40 % |
-| 8 | DELAY | ポストディレイの音量 | 30 % |
+| 1 | MIX | Balance of dry and effect. At 0 % processing stops and almost no CPU is used | 100 % |
+| 2 | CRUSH | Sample rate. 100 % is unprocessed; lower is rougher (same feel as knob 2 in 0.1.0) | 70 % |
+| 3 | CUTOFF | Low-pass cutoff 120 Hz – 18 kHz | 80 % |
+| 4 | RESO | Resonance (Q 0.6–14) | 40 % |
+| 5 | VOWEL | Formant vowel a, i, u, e, o | 0 % (a) |
+| 6 | DRIVE | Tube distortion (0 to +30 dB) | 35 % |
+| 7 | BASS | Bass boost (0 to +12 dB) | 40 % |
+| 8 | DELAY | Post-delay level | 30 % |
 
-ページ 2（ディレイとステレオ）。ジョグで切り替える:
+Page 2 (delays and stereo), switched with the jog wheel:
 
-| ノブ | 表示 | 内容 | 既定 |
+| Knob | Display | What it does | Default |
 |---|---|---|---|
-| 1 | PRE T | プリディレイの時間 0.5〜80 ms | 80 ms |
-| 2 | PRE FB | プリディレイのフィードバック | 61 % |
-| 3 | PRE MX | プリディレイのドライ/ウェット | 48 % |
-| 4 | POST T | ポストディレイの時間 20〜1000 ms | 300 ms |
-| 5 | POST FB | ポストディレイのフィードバック | 35 % |
-| 6 | WIDTH | ステレオの広がり | 60 % |
-| 7 | VOW AMT | フォルマントの量 | 60 % |
-| 8 | LEVEL | 出力レベル −12〜+12 dB | 0 dB |
+| 1 | PRE T | Pre-delay time 0.5–80 ms | 80 ms |
+| 2 | PRE FB | Pre-delay feedback | 61 % |
+| 3 | PRE MX | Pre-delay dry/wet | 48 % |
+| 4 | POST T | Post-delay time 20–1000 ms | 300 ms |
+| 5 | POST FB | Post-delay feedback | 35 % |
+| 6 | WIDTH | Stereo width | 60 % |
+| 7 | VOW AMT | Formant amount | 60 % |
+| 8 | LEVEL | Output level −12 to +12 dB | 0 dB |
 
-プリディレイの既定値（80 ms、61 %、48 %）は元パッチの SHORT DELAY の保存値から取った。
-PRE T を数 ms まで下げると、フランジャーやコムフィルターのような音になる。
+The pre-delay defaults (80 ms, 61 %, 48 %) come from the values stored in the
+original patch's SHORT DELAY. Bring PRE T down to a few ms for flanger- or
+comb-filter-like sounds.
 
-## 必要なもの
+## Requirements
 
-- Schwung を入れた Ableton Move
-- トラックスロットと Master FX のどちらでも使える（標準のノブグリッド）
+- An Ableton Move with Schwung installed
+- Works in a track slot and in Master FX (standard knob grid)
 
-## インストール
+## Installing
 
 ```bash
-python3 scripts/install.py http://<MoveのIP>:7700
+python3 scripts/install.py http://<Move's IP>:7700
 ```
 
-インストール後は Move を再起動する。
+Restart Move after installing.
 
-## ビルドとテスト
+## Building and testing
 
 ```bash
 bash scripts/build.sh arm64     # dist/monster-phase-module.tar.gz
-bash scripts/test.sh            # 全テスト
+bash scripts/test.sh            # all tests
 ```
 
-`tests/test_engine.c` で次のことを確かめている。
+`tests/test_engine.c` checks:
 
-- 各段の動作: ディレイの時間とフィードバック、レゾナンスの持ち上がり、母音ごとのフォルマントの
-  周波数、低音ブーストの量、チューブの倍音とオーバーサンプリングの効果、クラッシャーの間隔と
-  左右のずれ
-- 全体: どのノブを端まで回しても音量が入力の −12〜+9 dB に収まること、既定でステレオになること、
-  WIDTH 0 でモノラルのままなこと
-- 安定性: 全ノブを毎ブロック乱暴に動かしても発散しないこと、入力を止めると消えること
-- その他: ブロック長によらず同じ出力になること、48 kHz 動作、CPU 負荷、プラグイン API
+- Each stage: delay time and feedback, the resonance peak, formant frequencies
+  per vowel, the amount of bass boost, the tube's harmonics and the effect of
+  oversampling, the crusher's interval and left/right offset
+- Overall: with any knob turned to its ends the level stays within −12 to +9 dB
+  of the input, the default output is stereo, WIDTH 0 stays mono
+- Stability: moving every knob wildly every block does not blow up, and the
+  output dies away when the input stops
+- Other: the same output regardless of block length, 48 kHz operation, CPU load,
+  the plugin API
 
-AddressSanitizer + UBSan でも実行し、`tests/test_grid.mjs` で Schwung のページエンジンを使って
-2 ページ分の表示と書き込みを確かめている。
+It also runs under AddressSanitizer + UBSan, and `tests/test_grid.mjs` uses
+Schwung's page engine to check the display and writes of both pages.
 
-## 元パッチについて
+## About the original patch
 
-0.1.0 は、元パッチをファイルから忠実に再現しようとした版だった。その解析記録（ファイル構造、
-推定した配線、パッチ解析ツール `tools/aira_patch.py`）は [docs/ANALYSIS.md](docs/ANALYSIS.md) と
-`patch/`、`reference/` に残してある。0.2.0 からは再現をやめ、元パッチの要素（クラッシャー、
-フィルター、フォルマント、チューブ、低音、2 段ディレイ）を使った独自の設計になっている。
+0.1.0 tried to reproduce the original patch faithfully from its file. That
+analysis (the file structure, the inferred wiring, the patch analysis tool
+`tools/aira_patch.py`) is kept in [docs/ANALYSIS.md](docs/ANALYSIS.md), `patch/`
+and `reference/`. From 0.2.0 reproduction was abandoned, and the design is an
+original one built from the original patch's elements (crusher, filter,
+formant, tube, bass, two delays).
 
-## ライセンス
+## Licence
 
-MIT（[LICENSE](LICENSE)）。Copyright (c) 2026 Hiro Ikezawa。第三者のコードについては
-[THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md)。Roland、AIRA、BITRAZER は Roland の商標で、
-このモジュールは Roland とは関係がない。
+MIT ([LICENSE](LICENSE)). Copyright (c) 2026 Hiro Ikezawa. For third-party code
+see [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). Roland, AIRA and
+BITRAZER are trademarks of Roland; this module is not affiliated with Roland.
 
-## 変更履歴
+## Changes
 
-- 0.2.1 — MIX 0 のときは処理を止めて CPU をほぼ使わない（音は入力そのまま）。MIX を上げると、
-  ディレイを空にしてから動き出す（止める前のエコーは戻ってこない）
-- 0.2.0 — 作り直し。ステレオの直列チェーン（プリディレイ、フォルマント、クラッシャー、レゾナンス
-  LPF、低音、チューブ、ポストディレイ）に変更。2 ページ 16 ノブ。ビット深度の削減をやめ、
-  カットオフの下限を 120 Hz に上げた
-- 0.1.0 — 元パッチの再現を目指した最初の版
+- 0.2.1 — At MIX 0 processing stops and almost no CPU is used (the sound is the
+  input itself). When MIX goes up, the delays are cleared before it starts again
+  (echoes from before the stop do not come back)
+- 0.2.0 — Rebuilt. Changed to a stereo serial chain (pre-delay, formant,
+  crusher, resonant LPF, bass, tube, post-delay). 2 pages, 16 knobs. Bit-depth
+  reduction removed, the cutoff's lower limit raised to 120 Hz
+- 0.1.0 — First version, aiming to reproduce the original patch
